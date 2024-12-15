@@ -101,7 +101,7 @@ def dashboard():
     user_events = users[current_user.id]['events']
     searches = [e for e in user_events if e['event'] == 'search']
     favorites = [e for e in user_events if e['event'] == 'favorite']
-    return render_template('dashboard.html', searches=searches, favorites=favorites)
+    return render_template('dashboard.html', searches=searches, favorites=favorites, user_email=current_user.id)
 
 @app.route('/events', methods=['POST'])
 def receive_event():
@@ -119,6 +119,20 @@ def receive_event():
     return jsonify({'message': 'Event received'}), 201
 
 
+@app.route('/add_user', methods=['POST'])
+def add_user():
+    """Add a new user to the Admin Service's user store."""
+    user_data = request.json
+    if not user_data or 'email' not in user_data or 'password' not in user_data:
+        return jsonify({'message': 'Invalid user data'}), 400
+
+    email = user_data['email']
+    if email in users:
+        return jsonify({'message': 'User already exists in Admin Service'}), 400
+
+    # Add the user to the Admin Service's user store
+    users[email] = {'password': user_data['password'], 'events': []}
+    return jsonify({'message': 'User added successfully'}), 201
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # In-memory database for simplicity
 users = {}  # This will dynamically store user data (email, password, events)
-ADMIN_SERVICE_URL = "http://admin_service:5003/events"  # URL to send events
+ADMIN_SERVICE_URL = "http://admin_service:5003/"  # URL to send events
 
 @app.route('/register_page', methods=['GET'])
 def register_page():
@@ -29,7 +29,17 @@ def register_user():
     # Add the user to the in-memory database
     users[data['email']] = {'password': data['password'], 'events': []}
 
-    # Notify the Admin Service
+    # Notify the Admin Service to update its user store
+    admin_service_user_data = {
+        'email': data['email'],
+        'password': data['password']  # Optional: Avoid sending plain text passwords if possible
+    }
+    try:
+        requests.post(f"{ADMIN_SERVICE_URL}/add_user", json=admin_service_user_data)
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send user data to Admin Service: {e}")
+
+    # Notify the Admin Service of the registration event
     event = {
         'event': 'user_registered',
         'user_id': data['email'],
@@ -44,6 +54,7 @@ def register_user():
     if request.content_type != 'application/json':
         return redirect(url_for('register_success'))
     return jsonify({'message': 'User registered successfully'}), 201
+
 
 @app.route('/register_success', methods=['GET'])
 def register_success():
