@@ -1,53 +1,37 @@
-version: '3.8'
-
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+  admin_service:
+    build:
+      context: ./admin_service
+      dockerfile: Dockerfile
     ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      - "5003:5003"
+    networks:
+      - petfinder_network
 
   pet_search_service:
     build:
       context: ./pet_search_service
-    depends_on:
-      - kafka
+      dockerfile: Dockerfile
     ports:
       - "5002:5002"
+    networks:
+      - petfinder_network
     environment:
-      - KAFKA_BROKER=kafka:9092
+      - ADMIN_SERVICE_URL=http://admin_service:5003/events
+      - PETFINDER_API_KEY=jHY0pnScj9SogAzR1rKKSFLqHCrSqOywuib7HaewzdTj8ZsLI4
+      - PETFINDER_API_SECRET=A82kmUWeqG8EC3s9Z8xV0yY4gqS4qis24XeKMa5A
 
   user_management_service:
     build:
       context: ./user_management_service
-    depends_on:
-      - kafka
+      dockerfile: Dockerfile
     ports:
       - "5001:5001"
+    networks:
+      - petfinder_network
     environment:
-      - KAFKA_BROKER=kafka:9092
+      - ADMIN_SERVICE_URL=http://admin_service:5003/events
 
-  admin_service:
-    build:
-      context: ./admin_service
-    depends_on:
-      - kafka
-    ports:
-      - "5003:5003"
-    environment:
-      - KAFKA_BROKER=kafka:9092
+networks:
+  petfinder_network:
+    driver: bridge
